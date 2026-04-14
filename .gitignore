@@ -1,0 +1,30 @@
+# Enviroment
+.env
+.env.*
+!.env.example
+
+# Composer
+/vendor/
+
+# PHP / runtime
+*.log
+*.cache
+*.tmp
+.phpunit.result.cache
+
+# IDE 
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# PHPUnit
+/phpunit.xml.cache
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Coverage / reports
+/coverage/
+/reports/
+/build/
