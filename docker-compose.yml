@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anonymizer_api
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENV: dev
+    volumes:
+      - ./:/var/www/html
+    restart: unless-stopped
+
+  composer:
+    image: composer:2
+    working_dir: /app
+    volumes:
+      - ./:/app

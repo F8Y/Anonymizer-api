@@ -1,0 +1,13 @@
+.git
+.gitignore
+.idea
+.vscode
+vendor
+coverage
+reports
+build
+.env
+.env.*
+docker-compose.override.yml
+README.md
+phpunit.xml
