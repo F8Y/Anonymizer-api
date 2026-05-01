@@ -52,7 +52,7 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertSame('application/json', $response->getHeaderLine('Content-Type'));
+        self::assertSame('application/json; charset=utf-8', $response->getHeaderLine('Content-Type'));
 
         self::assertMatchesRegularExpression('/^USER-[A-F0-9]{12}$/', $payload['public_id']);
         self::assertMatchesRegularExpression('/^LOGIN-[A-F0-9]{12}$/', $payload['login']);
