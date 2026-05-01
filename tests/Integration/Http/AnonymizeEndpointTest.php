@@ -54,9 +54,9 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertMatchesRegularExpression('/^USER-[A-F0-9]{10}$/', $payload['full_name']);
-        self::assertSame('i***@example.com', $payload['email']);
-        self::assertSame('+7*******67', $payload['phone']);
+        self::assertMatchesRegularExpression('/^USER-[A-F0-9]{12}$/', $payload['full_name']);
+        self::assertSame('i****v@***.com', $payload['email']);
+        self::assertSame('+7********67', $payload['phone']);
         self::assertSame('2010', $payload['birth_date']);
     }
 
