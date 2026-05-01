@@ -6,17 +6,17 @@ namespace App\Http\Action;
 
 use App\Application\UseCase\AnonymizeDataUseCase;
 use App\Domain\Anonymization\DTO\AnonymizeRequestDto;
+use App\Http\Response\JsonResponseFactory;
 use App\Infrastructure\Validation\DtoValidator;
-use App\Support\Exception\ValidationException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Slim\Psr7\Response;
 
 final readonly class AnonymizeAction
 {
     public function __construct(
         private DtoValidator $dtoValidator,
-        private AnonymizeDataUseCase $useCase
+        private AnonymizeDataUseCase $useCase,
+        private JsonResponseFactory $jsonResponseFactory,
     ) {
     }
 
@@ -24,47 +24,21 @@ final readonly class AnonymizeAction
         ServerRequestInterface $request,
         ResponseInterface $response
     ): ResponseInterface {
-        $rawBody = (string) $request->getBody();
-        $payload = json_decode($rawBody, true);
+        $payload = $request->getParsedBody();
 
         if (!is_array($payload)) {
-            return $this->json(
-                $response,
-                ['error' => ['code' => 'invalid_json', 'message' => 'Request body must be valid JSON']],
-                400
-            );
+            $payload = [];
         }
 
-        try {
-            $dto = AnonymizeRequestDto::fromArray($payload);
-            $this->dtoValidator->validate($dto);
+        $dto = AnonymizeRequestDto::fromArray($payload);
 
-            $result = $this->useCase->execute($dto);
+        $this->dtoValidator->validate($dto);
 
-            return $this->json($response, $result->toArray(), 200);
-        } catch (ValidationException $e) {
-            return $this->json(
-                $response,
-                [
-                    'error' => [
-                        'code' => 'validation_error',
-                        'message' => 'Request validation failed',
-                        'details' => $e->errors(),
-                    ],
-                ],
-                422
-            );
-        }
-    }
+        $result = $this->useCase->execute($dto);
 
-    private function json(ResponseInterface $response, array $data, int $status): ResponseInterface
-    {
-        $response->getBody()->write(
-            json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        return $this->jsonResponseFactory->create(
+            response: $response,
+            payload: $result->toArray()
         );
-
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus($status);
     }
 }

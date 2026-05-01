@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration\Http;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use Slim\Psr7\Factory\ServerRequestFactory;
 
@@ -30,6 +31,7 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(200, $response->getStatusCode());
+        self::assertSame('application/json; charset=utf-8', $response->getHeaderLine('Content-Type'));
         self::assertSame('ok', $payload['status']);
         self::assertSame('anonymizer-api', $payload['service']);
     }
@@ -50,6 +52,8 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(200, $response->getStatusCode());
+        self::assertSame('application/json', $response->getHeaderLine('Content-Type'));
+
         self::assertMatchesRegularExpression('/^USER-[A-F0-9]{12}$/', $payload['public_id']);
         self::assertMatchesRegularExpression('/^LOGIN-[A-F0-9]{12}$/', $payload['login']);
         self::assertSame('[обезличено]', $payload['first_middle_name']);
@@ -73,6 +77,8 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(200, $response->getStatusCode());
+        self::assertSame('application/json; charset=utf-8', $response->getHeaderLine('Content-Type'));
+
         self::assertNull($payload['phone']);
         self::assertNull($payload['birth_date']);
     }
@@ -93,8 +99,12 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(422, $response->getStatusCode());
-        self::assertSame('validation_error', $payload['error']['code']);
-        self::assertArrayHasKey('email', $payload['error']['details']);
+        self::assertSame('application/problem+json; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        self::assertSame('https://sirius27.local/problems/validation-error', $payload['type']);
+        self::assertSame('Validation error', $payload['title']);
+        self::assertSame(422, $payload['status']);
+        self::assertSame('Request validation failed', $payload['detail']);
+        self::assertArrayHasKey('email', $payload['errors']);
     }
 
     public function testAnonymizeEndpointReturnsValidationErrorForMissingLogin(): void
@@ -112,8 +122,12 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(422, $response->getStatusCode());
-        self::assertSame('validation_error', $payload['error']['code']);
-        self::assertArrayHasKey('login', $payload['error']['details']);
+        self::assertSame('application/problem+json; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        self::assertSame('https://sirius27.local/problems/validation-error', $payload['type']);
+        self::assertSame('Validation error', $payload['title']);
+        self::assertSame(422, $payload['status']);
+        self::assertSame('Request validation failed', $payload['detail']);
+        self::assertArrayHasKey('login', $payload['errors']);
     }
 
     public function testAnonymizeEndpointReturnsValidationErrorForMissingLastName(): void
@@ -131,8 +145,12 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(422, $response->getStatusCode());
-        self::assertSame('validation_error', $payload['error']['code']);
-        self::assertArrayHasKey('lastName', $payload['error']['details']);
+        self::assertSame('application/problem+json; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        self::assertSame('https://sirius27.local/problems/validation-error', $payload['type']);
+        self::assertSame('Validation error', $payload['title']);
+        self::assertSame(422, $payload['status']);
+        self::assertSame('Request validation failed', $payload['detail']);
+        self::assertArrayHasKey('last_name', $payload['errors']);
     }
 
     public function testAnonymizeEndpointReturnsErrorForInvalidJson(): void
@@ -149,10 +167,17 @@ final class AnonymizeEndpointTest extends TestCase
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(400, $response->getStatusCode());
-        self::assertSame('invalid_json', $payload['error']['code']);
+        self::assertSame('application/problem+json; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        self::assertSame('https://sirius27.local/problems/invalid-json', $payload['type']);
+        self::assertSame('Invalid JSON', $payload['title']);
+        self::assertSame(400, $payload['status']);
+        self::assertSame('Request body must be valid JSON', $payload['detail']);
     }
 
-    private function jsonRequest(string $uri, array $payload)
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function jsonRequest(string $uri, array $payload): ServerRequestInterface
     {
         $request = (new ServerRequestFactory())
             ->createServerRequest('POST', $uri)

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\ErrorHandlerMiddleware;
+use App\Http\Middleware\JsonBodyMiddleware;
 use DI\ContainerBuilder;
 use Dotenv\Dotenv;
 use Slim\App;
@@ -26,5 +28,13 @@ AppFactory::setContainer($container);
 $app = AppFactory::create();
 
 (require __DIR__ . '/routes.php')($app);
+
+/**
+ * Middleware are executed in LIFO order.
+ * ErrorHandlerMiddleware must be added last to become the outer layer
+ * and catch errors from JsonBodyMiddleware and actions.
+ */
+$app->add($container->get(JsonBodyMiddleware::class));
+$app->add($container->get(ErrorHandlerMiddleware::class));
 
 return $app;

@@ -13,7 +13,7 @@ return static function (App $app): void {
             'service' => 'anonymizer-api',
         ], JSON_UNESCAPED_UNICODE));
 
-        return $response->withHeader('Content-Type', 'application/json');
+        return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
     });
 
     $app->post('/v1/anonymize', AnonymizeAction::class);

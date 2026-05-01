@@ -10,7 +10,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 final readonly class DtoValidator
 {
     public function __construct(
-        private ValidatorInterface $validator
+        private ValidatorInterface $validator,
+        private ValidationFieldNameMapper $fieldNameMapper,
     ) {
     }
 
@@ -25,7 +26,7 @@ final readonly class DtoValidator
         $errors = [];
 
         foreach ($violations as $violation) {
-            $field = $violation->getPropertyPath();
+            $field = $this->fieldNameMapper->toApiField($violation->getPropertyPath());
             $errors[$field][] = $violation->getMessage();
         }
 

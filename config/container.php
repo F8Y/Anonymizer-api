@@ -12,7 +12,12 @@ use App\Domain\Anonymization\Rule\PhoneRule;
 use App\Domain\Anonymization\Rule\PublicIdRule;
 use App\Domain\Anonymization\Service\Anonymizer;
 use App\Http\Action\AnonymizeAction;
+use App\Http\Middleware\ErrorHandlerMiddleware;
+use App\Http\Middleware\JsonBodyMiddleware;
+use App\Http\Response\JsonResponseFactory;
+use App\Http\Response\ProblemDetailsResponseFactory;
 use App\Infrastructure\Validation\DtoValidator;
+use App\Infrastructure\Validation\ValidationFieldNameMapper;
 use function DI\autowire;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -46,7 +51,15 @@ return [
     PhoneRule::class => autowire(),
     BirthDateRule::class => autowire(),
 
+    ValidationFieldNameMapper::class => autowire(),
     DtoValidator::class => autowire(),
+
+    JsonResponseFactory::class => autowire(),
+    ProblemDetailsResponseFactory::class => autowire(),
+
+    JsonBodyMiddleware::class => autowire(),
+    ErrorHandlerMiddleware::class => autowire(),
+
     Anonymizer::class => autowire(),
     AnonymizeDataUseCase::class => autowire(),
     AnonymizeAction::class => autowire(),
