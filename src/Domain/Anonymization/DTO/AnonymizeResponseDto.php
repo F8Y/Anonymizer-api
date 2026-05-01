@@ -7,17 +7,23 @@ namespace App\Domain\Anonymization\DTO;
 final readonly class AnonymizeResponseDto
 {
     public function __construct(
-        public string $fullName,
+        public string $publicId,
+        public string $login,
+        public string $firstMiddleName,
+        public string $lastName,
         public string $email,
-        public string $phone,
-        public string $birthDate,
+        public ?string $phone,
+        public ?string $birthDate,
     ) {
     }
 
     public function toArray(): array
     {
         return [
-            'full_name' => $this->fullName,
+            'public_id' => $this->publicId,
+            'login' => $this->login,
+            'first_middle_name' => $this->firstMiddleName,
+            'last_name' => $this->lastName,
             'email' => $this->email,
             'phone' => $this->phone,
             'birth_date' => $this->birthDate,

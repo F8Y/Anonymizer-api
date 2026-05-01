@@ -11,8 +11,12 @@ use InvalidArgumentException;
 
 final readonly class BirthDateRule implements AnonymizationRuleInterface
 {
-    public function apply(AnonymizeRequestDto $input): string
+    public function apply(AnonymizeRequestDto $input): ?string
     {
+        if ($input->birthDate === null) {
+            return null;
+        }
+
         $birthDate = trim($input->birthDate);
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthDate)) {

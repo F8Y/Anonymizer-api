@@ -36,44 +36,57 @@ final class AnonymizeEndpointTest extends TestCase
 
     public function testAnonymizeEndpointReturnsAnonymizedData(): void
     {
-        $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/v1/anonymize')
-            ->withHeader('Content-Type', 'application/json');
-
-        $request->getBody()->write(json_encode([
-            'full_name' => 'Иванов Иван Иванович',
+        $request = $this->jsonRequest('/v1/anonymize', [
+            'login' => 'ivanov_ii',
+            'first_middle_name' => 'Иван Иванович',
+            'last_name' => 'Иванов',
             'email' => 'ivanov@example.com',
             'phone' => '+79991234567',
             'birth_date' => '2010-04-12',
-        ], JSON_UNESCAPED_UNICODE));
-
-        $request->getBody()->rewind();
+        ]);
 
         $response = $this->app->handle($request);
 
         $payload = json_decode((string) $response->getBody(), true);
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertMatchesRegularExpression('/^USER-[A-F0-9]{12}$/', $payload['full_name']);
+        self::assertMatchesRegularExpression('/^USER-[A-F0-9]{12}$/', $payload['public_id']);
+        self::assertMatchesRegularExpression('/^LOGIN-[A-F0-9]{12}$/', $payload['login']);
+        self::assertSame('[обезличено]', $payload['first_middle_name']);
+        self::assertSame('[обезличено]', $payload['last_name']);
         self::assertSame('i****v@***.com', $payload['email']);
         self::assertSame('+7********67', $payload['phone']);
         self::assertSame('2010', $payload['birth_date']);
     }
 
+    public function testAnonymizeEndpointSupportsMissingOptionalFields(): void
+    {
+        $request = $this->jsonRequest('/v1/anonymize', [
+            'login' => 'ivanov_ii',
+            'first_middle_name' => 'Иван Иванович',
+            'last_name' => 'Иванов',
+            'email' => 'ivanov@example.com',
+        ]);
+
+        $response = $this->app->handle($request);
+
+        $payload = json_decode((string) $response->getBody(), true);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertNull($payload['phone']);
+        self::assertNull($payload['birth_date']);
+    }
+
     public function testAnonymizeEndpointReturnsValidationErrorForInvalidEmail(): void
     {
-        $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/v1/anonymize')
-            ->withHeader('Content-Type', 'application/json');
-
-        $request->getBody()->write(json_encode([
-            'full_name' => 'Иванов Иван Иванович',
+        $request = $this->jsonRequest('/v1/anonymize', [
+            'login' => 'ivanov_ii',
+            'first_middle_name' => 'Иван Иванович',
+            'last_name' => 'Иванов',
             'email' => 'not-an-email',
             'phone' => '+79991234567',
             'birth_date' => '2010-04-12',
-        ], JSON_UNESCAPED_UNICODE));
-
-        $request->getBody()->rewind();
+        ]);
 
         $response = $this->app->handle($request);
 
@@ -84,19 +97,15 @@ final class AnonymizeEndpointTest extends TestCase
         self::assertArrayHasKey('email', $payload['error']['details']);
     }
 
-    public function testAnonymizeEndpointReturnsValidationErrorForMissingFullName(): void
+    public function testAnonymizeEndpointReturnsValidationErrorForMissingLogin(): void
     {
-        $request = (new ServerRequestFactory())
-            ->createServerRequest('POST', '/v1/anonymize')
-            ->withHeader('Content-Type', 'application/json');
-
-        $request->getBody()->write(json_encode([
+        $request = $this->jsonRequest('/v1/anonymize', [
+            'first_middle_name' => 'Иван Иванович',
+            'last_name' => 'Иванов',
             'email' => 'ivanov@example.com',
             'phone' => '+79991234567',
             'birth_date' => '2010-04-12',
-        ], JSON_UNESCAPED_UNICODE));
-
-        $request->getBody()->rewind();
+        ]);
 
         $response = $this->app->handle($request);
 
@@ -104,7 +113,26 @@ final class AnonymizeEndpointTest extends TestCase
 
         self::assertSame(422, $response->getStatusCode());
         self::assertSame('validation_error', $payload['error']['code']);
-        self::assertArrayHasKey('fullName', $payload['error']['details']);
+        self::assertArrayHasKey('login', $payload['error']['details']);
+    }
+
+    public function testAnonymizeEndpointReturnsValidationErrorForMissingLastName(): void
+    {
+        $request = $this->jsonRequest('/v1/anonymize', [
+            'login' => 'ivanov_ii',
+            'first_middle_name' => 'Иван Иванович',
+            'email' => 'ivanov@example.com',
+            'phone' => '+79991234567',
+            'birth_date' => '2010-04-12',
+        ]);
+
+        $response = $this->app->handle($request);
+
+        $payload = json_decode((string) $response->getBody(), true);
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame('validation_error', $payload['error']['code']);
+        self::assertArrayHasKey('lastName', $payload['error']['details']);
     }
 
     public function testAnonymizeEndpointReturnsErrorForInvalidJson(): void
@@ -122,5 +150,17 @@ final class AnonymizeEndpointTest extends TestCase
 
         self::assertSame(400, $response->getStatusCode());
         self::assertSame('invalid_json', $payload['error']['code']);
+    }
+
+    private function jsonRequest(string $uri, array $payload)
+    {
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('POST', $uri)
+            ->withHeader('Content-Type', 'application/json');
+
+        $request->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+        $request->getBody()->rewind();
+
+        return $request;
     }
 }

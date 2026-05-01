@@ -4,30 +4,33 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain\Anonymization\Rule;
 
-use App\Domain\Anonymization\DTO\AnonymizeRequestDto;
 use App\Domain\Anonymization\Rule\BirthDateRule;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\AnonymizeDtoFactory;
 
 final class BirthDateRuleTest extends TestCase
 {
-    private function makeDto(string $birthDate): AnonymizeRequestDto
-    {
-        return new AnonymizeRequestDto(
-            fullName: 'Иванов Иван Иванович',
-            email: 'ivanov@example.com',
-            phone: '+79991234567',
-            birthDate: $birthDate,
-        );
-    }
-
     public function testItReducesBirthDateToYear(): void
     {
         $rule = new BirthDateRule();
 
-        $result = $rule->apply($this->makeDto('2010-04-12'));
+        $result = $rule->apply(AnonymizeDtoFactory::make([
+            'birthDate' => '2010-04-12',
+        ]));
 
         self::assertSame('2010', $result);
+    }
+
+    public function testItReturnsNullWhenBirthDateIsMissing(): void
+    {
+        $rule = new BirthDateRule();
+
+        $result = $rule->apply(AnonymizeDtoFactory::make([
+            'birthDate' => null,
+        ]));
+
+        self::assertNull($result);
     }
 
     public function testItThrowsExceptionForInvalidDateFormat(): void
@@ -36,7 +39,9 @@ final class BirthDateRuleTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $rule->apply($this->makeDto('12.04.2010'));
+        $rule->apply(AnonymizeDtoFactory::make([
+            'birthDate' => '12.04.2010',
+        ]));
     }
 
     public function testItThrowsExceptionForInvalidCalendarDate(): void
@@ -45,6 +50,8 @@ final class BirthDateRuleTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $rule->apply($this->makeDto('2010-99-99'));
+        $rule->apply(AnonymizeDtoFactory::make([
+            'birthDate' => '2010-99-99',
+        ]));
     }
 }

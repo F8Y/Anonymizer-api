@@ -5,8 +5,11 @@ declare(strict_types=1);
 use App\Application\UseCase\AnonymizeDataUseCase;
 use App\Domain\Anonymization\Rule\BirthDateRule;
 use App\Domain\Anonymization\Rule\EmailRule;
-use App\Domain\Anonymization\Rule\FullNameRule;
+use App\Domain\Anonymization\Rule\FirstMiddleNameRule;
+use App\Domain\Anonymization\Rule\LastNameRule;
+use App\Domain\Anonymization\Rule\LoginRule;
 use App\Domain\Anonymization\Rule\PhoneRule;
+use App\Domain\Anonymization\Rule\PublicIdRule;
 use App\Domain\Anonymization\Service\Anonymizer;
 use App\Http\Action\AnonymizeAction;
 use App\Infrastructure\Validation\DtoValidator;
@@ -21,14 +24,24 @@ return [
             ->getValidator();
     },
 
-    FullNameRule::class => static function (): FullNameRule {
+    PublicIdRule::class => static function (): PublicIdRule {
         $secret = $_ENV['APP_ANONYMIZATION_SECRET']
             ?? getenv('APP_ANONYMIZATION_SECRET')
             ?: 'dev-anonymization-secret';
 
-        return new FullNameRule($secret);
+        return new PublicIdRule($secret);
     },
 
+    LoginRule::class => static function (): LoginRule {
+        $secret = $_ENV['APP_ANONYMIZATION_SECRET']
+            ?? getenv('APP_ANONYMIZATION_SECRET')
+            ?: 'dev-anonymization-secret';
+
+        return new LoginRule($secret);
+    },
+
+    FirstMiddleNameRule::class => autowire(),
+    LastNameRule::class => autowire(),
     EmailRule::class => autowire(),
     PhoneRule::class => autowire(),
     BirthDateRule::class => autowire(),

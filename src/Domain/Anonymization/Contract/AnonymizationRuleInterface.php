@@ -8,5 +8,5 @@ use App\Domain\Anonymization\DTO\AnonymizeRequestDto;
 
 interface AnonymizationRuleInterface
 {
-    public function apply(AnonymizeRequestDto $input): string;
+    public function apply(AnonymizeRequestDto $input): ?string;
 }

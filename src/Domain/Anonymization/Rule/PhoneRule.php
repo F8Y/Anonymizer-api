@@ -9,12 +9,16 @@ use App\Domain\Anonymization\DTO\AnonymizeRequestDto;
 
 final readonly class PhoneRule implements AnonymizationRuleInterface
 {
-    public function apply(AnonymizeRequestDto $input): string
+    public function apply(AnonymizeRequestDto $input): ?string
     {
+        if ($input->phone === null) {
+            return null;
+        }
+
         $digits = preg_replace('/\D+/', '', $input->phone) ?? '';
 
         if ($digits === '') {
-            return '***';
+            return null;
         }
 
         $normalized = $this->normalizeRussianPhone($digits);

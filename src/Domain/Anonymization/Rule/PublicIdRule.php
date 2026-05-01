@@ -7,7 +7,7 @@ namespace App\Domain\Anonymization\Rule;
 use App\Domain\Anonymization\Contract\AnonymizationRuleInterface;
 use App\Domain\Anonymization\DTO\AnonymizeRequestDto;
 
-final readonly class FullNameRule implements AnonymizationRuleInterface
+final readonly class PublicIdRule implements AnonymizationRuleInterface
 {
     public function __construct(
         private string $secret
@@ -16,13 +16,15 @@ final readonly class FullNameRule implements AnonymizationRuleInterface
 
     public function apply(AnonymizeRequestDto $input): string
     {
-        $normalized = $this->normalize($input->fullName);
+        $source = implode('|', [
+            $this->normalize($input->login),
+            $this->normalize($input->lastName),
+            $this->normalize($input->firstMiddleName),
+            $input->birthDate ?? '',
+            mb_strtolower(trim($input->email)),
+        ]);
 
-        $hash = hash_hmac(
-            algo: 'sha256',
-            data: $normalized,
-            key: $this->secret
-        );
+        $hash = hash_hmac('sha256', $source, $this->secret);
 
         return 'USER-' . strtoupper(substr($hash, 0, 12));
     }

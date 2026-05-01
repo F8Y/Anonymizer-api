@@ -4,27 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain\Anonymization\Rule;
 
-use App\Domain\Anonymization\DTO\AnonymizeRequestDto;
 use App\Domain\Anonymization\Rule\EmailRule;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\AnonymizeDtoFactory;
 
 final class EmailRuleTest extends TestCase
 {
-    private function makeDto(string $email): AnonymizeRequestDto
-    {
-        return new AnonymizeRequestDto(
-            fullName: 'Иванов Иван Иванович',
-            email: $email,
-            phone: '+79991234567',
-            birthDate: '2010-04-12',
-        );
-    }
-
     public function testItMasksRegularEmail(): void
     {
         $rule = new EmailRule();
 
-        $result = $rule->apply($this->makeDto('ivanov@example.com'));
+        $result = $rule->apply(AnonymizeDtoFactory::make([
+            'email' => 'ivanov@example.com',
+        ]));
 
         self::assertSame('i****v@***.com', $result);
     }
@@ -33,7 +25,9 @@ final class EmailRuleTest extends TestCase
     {
         $rule = new EmailRule();
 
-        $result = $rule->apply($this->makeDto('a@example.com'));
+        $result = $rule->apply(AnonymizeDtoFactory::make([
+            'email' => 'a@example.com',
+        ]));
 
         self::assertSame('*@***.com', $result);
     }
@@ -42,7 +36,9 @@ final class EmailRuleTest extends TestCase
     {
         $rule = new EmailRule();
 
-        $result = $rule->apply($this->makeDto('ab@example.com'));
+        $result = $rule->apply(AnonymizeDtoFactory::make([
+            'email' => 'ab@example.com',
+        ]));
 
         self::assertSame('a*@***.com', $result);
     }
@@ -51,7 +47,9 @@ final class EmailRuleTest extends TestCase
     {
         $rule = new EmailRule();
 
-        $result = $rule->apply($this->makeDto('Ivanov@Example.COM'));
+        $result = $rule->apply(AnonymizeDtoFactory::make([
+            'email' => 'Ivanov@Example.COM',
+        ]));
 
         self::assertSame('i****v@***.com', $result);
     }
@@ -60,7 +58,9 @@ final class EmailRuleTest extends TestCase
     {
         $rule = new EmailRule();
 
-        $result = $rule->apply($this->makeDto('ivanov@sirius27.ru'));
+        $result = $rule->apply(AnonymizeDtoFactory::make([
+            'email' => 'ivanov@sirius27.ru',
+        ]));
 
         self::assertSame('i****v@***.ru', $result);
         self::assertStringNotContainsString('sirius27', $result);
