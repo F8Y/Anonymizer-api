@@ -1,0 +1,339 @@
+openapi: 3.1.0
+
+info:
+  title: Sirius 27 Anonymizer API
+  version: 1.0.0
+  description: >
+    Stateless REST API module for anonymizing participant personal data.
+    The service does not store input data and does not maintain a mapping
+    between original and anonymized values.
+
+servers:
+  - url: http://localhost:8080
+    description: Local Docker environment
+
+tags:
+  - name: System
+    description: Service health and technical endpoints
+  - name: Anonymization
+    description: Personal data anonymization endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Check service health
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                ok:
+                  value:
+                    status: ok
+                    service: anonymizer-api
+
+  /v1/anonymize:
+    post:
+      tags:
+        - Anonymization
+      summary: Anonymize participant personal data
+      operationId: anonymizeParticipant
+      description: >
+        Accepts participant personal data and returns anonymized values.
+        The service does not persist the input payload.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnonymizeRequest'
+            examples:
+              fullPayload:
+                summary: Request with optional fields
+                value:
+                  login: ivanov_ii
+                  first_middle_name: Иван Иванович
+                  last_name: Иванов
+                  email: ivanov@example.com
+                  phone: '+79991234567'
+                  birth_date: '2010-04-12'
+              withoutOptionalFields:
+                summary: Request without phone and birth date
+                value:
+                  login: ivanov_ii
+                  first_middle_name: Иван Иванович
+                  last_name: Иванов
+                  email: ivanov@example.com
+      responses:
+        '200':
+          description: Personal data was anonymized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnonymizeResponse'
+              examples:
+                success:
+                  value:
+                    public_id: USER-88CF2D01BD41
+                    login: LOGIN-680B0200B387
+                    first_middle_name: '[обезличено]'
+                    last_name: '[обезличено]'
+                    email: i****v@***.com
+                    phone: '+7********67'
+                    birth_date: '2010'
+                successWithoutOptionalFields:
+                  value:
+                    public_id: USER-88CF2D01BD41
+                    login: LOGIN-680B0200B387
+                    first_middle_name: '[обезличено]'
+                    last_name: '[обезличено]'
+                    email: i****v@***.com
+                    phone: null
+                    birth_date: null
+
+        '400':
+          description: Request body is not valid JSON
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                invalidJson:
+                  value:
+                    type: https://sirius27.local/problems/invalid-json
+                    title: Invalid JSON
+                    status: 400
+                    detail: Request body must be valid JSON
+
+        '422':
+          description: Request JSON is syntactically valid, but failed validation
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+              examples:
+                invalidEmail:
+                  value:
+                    type: https://sirius27.local/problems/validation-error
+                    title: Validation error
+                    status: 422
+                    detail: Request validation failed
+                    errors:
+                      email:
+                        - email must be valid
+                missingLastName:
+                  value:
+                    type: https://sirius27.local/problems/validation-error
+                    title: Validation error
+                    status: 422
+                    detail: Request validation failed
+                    errors:
+                      last_name:
+                        - last_name is required
+
+        '500':
+          description: Unexpected server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                internalError:
+                  value:
+                    type: https://sirius27.local/problems/internal-server-error
+                    title: Internal server error
+                    status: 500
+                    detail: Unexpected server error
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - service
+      properties:
+        status:
+          type: string
+          examples:
+            - ok
+        service:
+          type: string
+          examples:
+            - anonymizer-api
+
+    AnonymizeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - login
+        - first_middle_name
+        - last_name
+        - email
+      properties:
+        login:
+          type: string
+          minLength: 1
+          description: Participant login from the source system.
+          examples:
+            - ivanov_ii
+
+        first_middle_name:
+          type: string
+          minLength: 1
+          description: Participant first name and patronymic in one field.
+          examples:
+            - Иван Иванович
+
+        last_name:
+          type: string
+          minLength: 1
+          description: Participant last name.
+          examples:
+            - Иванов
+
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: Participant email address.
+          examples:
+            - ivanov@example.com
+
+        phone:
+          type:
+            - string
+            - 'null'
+          pattern: '^\\+?[1-9]\\d{10,14}$'
+          description: Optional participant phone number in international format.
+          examples:
+            - '+79991234567'
+
+        birth_date:
+          type:
+            - string
+            - 'null'
+          format: date
+          description: Optional participant birth date in YYYY-MM-DD format.
+          examples:
+            - '2010-04-12'
+
+    AnonymizeResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - public_id
+        - login
+        - first_middle_name
+        - last_name
+        - email
+        - phone
+        - birth_date
+      properties:
+        public_id:
+          type: string
+          pattern: '^USER-[A-F0-9]{12}$'
+          description: Deterministic public pseudonym generated from participant data and service secret.
+          examples:
+            - USER-88CF2D01BD41
+
+        login:
+          type: string
+          pattern: '^LOGIN-[A-F0-9]{12}$'
+          description: Deterministic pseudonymized login.
+          examples:
+            - LOGIN-680B0200B387
+
+        first_middle_name:
+          type: string
+          description: Removed first name and patronymic.
+          examples:
+            - '[обезличено]'
+
+        last_name:
+          type: string
+          description: Removed last name.
+          examples:
+            - '[обезличено]'
+
+        email:
+          type: string
+          description: Masked email address.
+          examples:
+            - i****v@***.com
+
+        phone:
+          type:
+            - string
+            - 'null'
+          description: Masked phone number, or null if phone was not provided.
+          examples:
+            - '+7********67'
+            - null
+
+        birth_date:
+          type:
+            - string
+            - 'null'
+          pattern: '^\\d{4}$'
+          description: Birth year, or null if birth date was not provided.
+          examples:
+            - '2010'
+            - null
+
+    ProblemDetails:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - detail
+      properties:
+        type:
+          type: string
+          format: uri
+          examples:
+            - https://sirius27.local/problems/invalid-json
+        title:
+          type: string
+          examples:
+            - Invalid JSON
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+          examples:
+            - 400
+        detail:
+          type: string
+          examples:
+            - Request body must be valid JSON
+
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          additionalProperties: false
+          required:
+            - errors
+          properties:
+            errors:
+              type: object
+              description: Validation errors grouped by API field name.
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              examples:
+                - email:
+                    - email must be valid
+                  last_name:
+                    - last_name is required
